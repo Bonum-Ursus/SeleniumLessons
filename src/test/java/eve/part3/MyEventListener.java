@@ -1,17 +1,18 @@
 package eve.part3;
 
+import com.google.common.io.Files;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.events.AbstractWebDriverEventListener;
 import org.openqa.selenium.support.events.EventFiringWebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.io.File;
+import java.io.IOException;
 
 public class MyEventListener {
     public EventFiringWebDriver driver;
@@ -30,6 +31,14 @@ public class MyEventListener {
         @Override
         public void onException(Throwable throwable, WebDriver driver) {
             System.out.println(throwable);
+            File tmp = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+            File screen = new File("screen-" + System.currentTimeMillis() + ".png");
+            try {
+                Files.copy(tmp, screen);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println(screen);
         }
     }
 
@@ -39,14 +48,15 @@ public class MyEventListener {
                 "src/test/resources/chromedriver.exe");
         driver = new EventFiringWebDriver(new ChromeDriver());
         driver.register(new MyListener());
-        wait = new WebDriverWait(driver, 10);
+        wait = new WebDriverWait(driver, 3);
     }
     @Test
     public void findElementTest() throws InterruptedException {
         driver.get("https://yandex.ru/");
-        driver.findElement(By.cssSelector(".input__control.input__input")).sendKeys("Погода");
-        driver.findElement(By.cssSelector(".search2__button")).click();
-        wait.until(ExpectedConditions.titleContains("Погода — Яндекс"));
+        System.out.println(driver.manage().logs().getAvailableLogTypes());
+//        driver.findElement(By.cssSelector("._input__control.input__input")).sendKeys("Погода");
+//        driver.findElement(By.cssSelector(".search2__button")).click();
+//        wait.until(ExpectedConditions.titleContains("Погода — Яндекс"));
 //        Assert.assertTrue(isElementPresent(By.cssSelector(".rc")));
     }
 
