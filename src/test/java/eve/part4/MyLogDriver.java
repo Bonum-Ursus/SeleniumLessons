@@ -49,6 +49,7 @@ public class MyLogDriver {
 
         Proxy seleniumProxy = ClientUtil.createSeleniumProxy(proxy);
 
+        
         DesiredCapabilities capabilities = new DesiredCapabilities();
         capabilities.setCapability(CapabilityType.PROXY, seleniumProxy);
 
