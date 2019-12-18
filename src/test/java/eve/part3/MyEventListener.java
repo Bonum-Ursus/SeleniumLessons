@@ -1,11 +1,18 @@
 package eve.part3;
 
 import com.google.common.io.Files;
+import net.lightbody.bmp.BrowserMobProxy;
+import net.lightbody.bmp.BrowserMobProxyServer;
+import net.lightbody.bmp.client.ClientUtil;
+import net.lightbody.bmp.core.har.Har;
+import net.lightbody.bmp.proxy.CaptureType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.events.AbstractWebDriverEventListener;
 import org.openqa.selenium.support.events.EventFiringWebDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -15,8 +22,9 @@ import java.io.File;
 import java.io.IOException;
 
 public class MyEventListener {
-    public EventFiringWebDriver driver;
+    public WebDriver driver;
     public WebDriverWait wait;
+    public BrowserMobProxy proxy;
     public static class MyListener extends AbstractWebDriverEventListener{
         @Override
         public void beforeFindBy(By by, WebElement element, WebDriver driver) {
@@ -44,16 +52,33 @@ public class MyEventListener {
 
     @Before
     public void start(){
+        proxy = new BrowserMobProxyServer();
+        proxy.start(0);
+
+        Proxy seleniumProxy = ClientUtil.createSeleniumProxy(proxy);
+
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        capabilities.setCapability(CapabilityType.PROXY, seleniumProxy);
+
         System.setProperty("webdriver.chrome.driver",
                 "src/test/resources/chromedriver.exe");
-        driver = new EventFiringWebDriver(new ChromeDriver());
-        driver.register(new MyListener());
+//        driver = new EventFiringWebDriver(new ChromeDriver());
+//        driver.register(new MyListener());
+        driver = new ChromeDriver(capabilities);
+        proxy.enableHarCaptureTypes(CaptureType.REQUEST_CONTENT, CaptureType.RESPONSE_CONTENT);
         wait = new WebDriverWait(driver, 3);
     }
     @Test
     public void findElementTest() throws InterruptedException {
+        proxy.newHar();
         driver.get("https://yandex.ru/");
-        System.out.println(driver.manage().logs().getAvailableLogTypes());
+        Thread.sleep(2000);
+        Har har = proxy.endHar();
+        har.getLog().getEntries().forEach(
+                harEntry -> System.out.println(harEntry.getResponse().getStatus() +
+                        " : " + harEntry.getRequest().getUrl()));
+
+//        System.out.println(driver.manage().logs().getAvailableLogTypes());
 //        driver.findElement(By.cssSelector("._input__control.input__input")).sendKeys("Погода");
 //        driver.findElement(By.cssSelector(".search2__button")).click();
 //        wait.until(ExpectedConditions.titleContains("Погода — Яндекс"));
